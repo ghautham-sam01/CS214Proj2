@@ -1,1 +1,2 @@
-echo hello 
+echo hello
+cat test1.txt
