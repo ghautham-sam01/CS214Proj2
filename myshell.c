@@ -33,8 +33,27 @@ int interactiveMode(){
     }
 }
 
-int batchMode(){
-   return 1;   
+int batchMode(char filename[100]){
+	printf("Received Script. Opening %s", filename);
+	FILE *fptr;
+	char line[200];
+	char **args;
+	fptr = fopen(filename, "r");
+	if (fptr == NULL){
+		printf("\nUnable to open file.");
+		return 1;
+	}
+	else{
+		printf("\nFile Opened. Parsing. Parsed commands displayed first.");
+		while(fgets(line, sizeof(line), fptr)!= NULL){
+			printf("\n%s", line);
+			args=splitLine(line);
+			execShell(args);
+		}
+	}
+	free(args);
+	fclose(fptr);
+	return 1;
 }
 
 char *readLine()
