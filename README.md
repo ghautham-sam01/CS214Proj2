@@ -22,3 +22,4 @@ In order for our program to be considered correct it needs to satisfy the follow
 5. It should be able to handle pipes
 6. It should be able to handle extension 1
 7. It should be able to handle extension 2
+8. If passed more than one argument the 
