@@ -5,8 +5,10 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <wait.h>
+
 #include "arraylist.h"
 #include "myshell.h"
+#include "readline.h"
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -15,9 +17,7 @@
 #define BUFSIZE 512
 #endif
 
-#ifndef QUIT
-#define QUIT=0
-#endif
+int QUIT = 0;
 
 int main(int argc, char **argv){
     printf("Hello! Welcome to our shell\n");
@@ -189,44 +189,4 @@ int execShell(char **args){
 	ret = myShellLaunch(args);
 	return ret;
 }
-
-int interactiveMode(){
-    char *line;
-    char **args;
-    while(line !='q'){
-        printf("myshell> ");
-        line = readLine();
-        args = getTokens(line);
-        execShell(args);
-        free(line);
-        free(args);
-    }
-	return 1;
-}
-
-int batchMode(char filename[100]){
-	printf("Received Script. Opening %s", filename);
-	FILE  *fin;
-	char line[200];
-	char **args;
-	fin = fopen(filename, "r");
-	if (fin == -1){
-		perror(filename);
-		exit(EXIT_FAILURE);
-	}else{
-		printf("\nFile Opened. Parsing. Parsed commands displayed first.");
-		//code that goes line by line executing functions should go here
-		/**
-		while(fgets(line, sizeof(line), fin)!= NULL){
-			printf("\n%s", line);
-			args=splitLine(line);
-			execShell(args);
-		}
-		*/
-	}
-	free(args);
-	fclose(fin);
-	return 1;
-}
-
 
