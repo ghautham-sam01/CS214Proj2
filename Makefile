@@ -1,14 +1,14 @@
 CC = gcc
 CFLAGS = -std=c99 -g -Wall -fsanitize=address 
 
-myshell: myshell.o arraylist.o
+myshell: arraylist.o myshell.o
 	$(CC) $(CFLAGS) $^ -o $@
 
-myshell.o: myshell.c myshell.h arraylist.o arraylist.h
-	$(CC) $(CFLAGS) $^ -o $@
+myshell.o: myshell.c myshell.h
+	$(CC) $(CFLAGS) -c myshell.c
 
 arraylist.o: arraylist.c arraylist.h
-	$(CC) -c $(CFLAGS) -DSAFE -DDEBUG=2 $< -o $@
+	$(CC) $(CFLAGS) -c arraylist.c
 
 clean: 
 	rm -rf  *.o myshell
