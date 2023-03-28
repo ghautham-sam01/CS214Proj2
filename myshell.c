@@ -4,7 +4,9 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <wait.h>
 #include "arraylist.h"
+#include "myshell.h"
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -13,16 +15,35 @@
 #define BUFSIZE 512
 #endif
 
-int QUIT=0;
+#ifndef QUIT
+#define QUIT=0
+#endif
+
+int main(int argc, char **argv){
+    printf("Hello! Welcome to our shell\n");
+    if(argc==1){
+    //Interactive mode
+        printf("\nType some commands to begin\n");        
+        interactiveMode();
+    }else if(argc==2){
+    //Batch mode
+        printf("\nProcessing file....");
+        batchMode(argv[1]);
+    }else{
+        printf("\n Too many args");
+    }
+	
+    return 0;
+}
 
 char *readLine(){
-	int bytes,pos,lstart,linePos,lineSize;
+	int bytes,lstart,linePos,lineSize;
 	char *lineBuffer;
 	char buffer[BUFSIZE];
 	lineBuffer = malloc(BUFSIZE);
 	lineSize = BUFSIZE;
 	linePos = 0;
-	/*char *line = (char *)malloc(sizeof(char) * 1024); // Dynamically Allocate Buffer
+	char *line = (char *)malloc(sizeof(char) * 1024); // Dynamically Allocate Buffer
 	char c;
 	int pos = 0, bufsize = 1024;
 	if (!line) // Buffer Allocation Failed
@@ -54,7 +75,7 @@ char *readLine(){
 			exit(EXIT_FAILURE);
 			}
 		}
-	}*/
+	}
 }
  
 char **getTokens(char *line){
@@ -185,41 +206,27 @@ int interactiveMode(){
 
 int batchMode(char filename[100]){
 	printf("Received Script. Opening %s", filename);
-	int fin;
+	FILE  *fin;
 	char line[200];
 	char **args;
-	fin = open(filename, O_RDONLY);
+	fin = fopen(filename, "r");
 	if (fin == -1){
 		perror(filename);
 		exit(EXIT_FAILURE);
 	}else{
 		printf("\nFile Opened. Parsing. Parsed commands displayed first.");
-		while(fgets(line, sizeof(line), fptr)!= NULL){
+		//code that goes line by line executing functions should go here
+		/**
+		while(fgets(line, sizeof(line), fin)!= NULL){
 			printf("\n%s", line);
 			args=splitLine(line);
 			execShell(args);
 		}
+		*/
 	}
 	free(args);
-	close(fin);
+	fclose(fin);
 	return 1;
-}
-
-int main(int argc, char **argv){
-    printf("Hello! Welcome to our shell\n");
-    if(argc==1){
-    //Interactive mode
-        printf("\nType some commands to begin\n");        
-        interactiveMode();
-    }else if(argc==2){
-    //Batch mode
-        printf("\nProcessing file....");
-        batchMode(argv[1]);
-    }else{
-        printf("\n Too many args");
-    }
-	
-    return 0;
 }
 
 
