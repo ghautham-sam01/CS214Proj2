@@ -1,65 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <assert.h>
 #include "arraylist.h"
 
-int main(int argc, char **argv){
-    printf("Hello! Welcome to our shell\n");
-    if(argc==1){
-    //Interactive mode
-        printf("\nType some commands to begin\n");        
-        interactiveMode();
-    }else if(argc==2){
-    //Batch mode
-        printf("\nProcessing file....");
-        batchMode(argv[1]);
-    }else{
-        printf("\n Too many args");
-    }
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+#ifndef BUFSIZE
+#define BUFSIZE 512
+#endif
 
+int QUIT=0;
 
-    return 0;
-}
-
-int interactiveMode(){
-    char *line;
-    char **args;
-    while(line !='q'){
-        printf("myshell> ");
-        line = readLine();
-        args = getTokens(line);
-        execShell(args);
-        free(line);
-        free(args);
-    }
-}
-
-int batchMode(char filename[100]){
-	printf("Received Script. Opening %s", filename);
-	FILE *fptr;
-	char line[200];
-	char **args;
-	fptr = fopen(filename, "r");
-	if (fptr == NULL){
-		printf("\nUnable to open file.");
-		return 1;
-	}
-	else{
-		printf("\nFile Opened. Parsing. Parsed commands displayed first.");
-		while(fgets(line, sizeof(line), fptr)!= NULL){
-			printf("\n%s", line);
-			args=splitLine(line);
-			execShell(args);
-		}
-	}
-	free(args);
-	fclose(fptr);
-	return 1;
-}
-
-char *readLine()
-{
-	char *line = (char *)malloc(sizeof(char) * 1024); // Dynamically Allocate Buffer
+char *readLine(){
+	int bytes,pos,lstart,linePos,lineSize;
+	char *lineBuffer;
+	char buffer[BUFSIZE];
+	lineBuffer = malloc(BUFSIZE);
+	lineSize = BUFSIZE;
+	linePos = 0;
+	/*char *line = (char *)malloc(sizeof(char) * 1024); // Dynamically Allocate Buffer
 	char c;
 	int pos = 0, bufsize = 1024;
 	if (!line) // Buffer Allocation Failed
@@ -91,10 +54,10 @@ char *readLine()
 			exit(EXIT_FAILURE);
 			}
 		}
-	}
+	}*/
 }
-char **getTokens(char *line)
-{
+ 
+char **getTokens(char *line){
 	char **tokens = (char **)malloc(sizeof(char *) * 64);
 	char *token;
 	char delim[10] = " \t\n\r\a";
@@ -124,11 +87,8 @@ char **getTokens(char *line)
 	tokens[pos] = NULL;
 	return tokens;
 }
-// Section Dealing with Built-in Commands
 
-// Function Declarations
-int myShell_cd(char **args);
-int myShell_exit();
+// Section Dealing with Built-in Commands
 
 // Definitions
 char *builtin_cmd[] = {"cd", "exit"};
@@ -141,8 +101,7 @@ int numBuiltin() // Function to return number of builtin commands
 }
 
 // Builtin command definitions
-int myShell_cd(char **args)
-{
+int myShell_cd(char **args){
 	if (args[1] == NULL) 
 	{
 		printf("myShell: expected argument to \"cd\"\n");
@@ -157,15 +116,13 @@ int myShell_cd(char **args)
 	return 1;
 }
 
-int myShell_exit()
-{
+int myShell_exit(){
 	QUIT = 1;
 	return 0;
 }
 
 // Function to create child process and run command
-int myShellLaunch(char **args)
-{
+int myShellLaunch(char **args){
 	pid_t pid, wpid;
 	int status;
 	pid = fork();
@@ -195,8 +152,7 @@ int myShellLaunch(char **args)
 }
 
 // Function to execute command from terminal
-int execShell(char **args)
-{
+int execShell(char **args){
 	int ret;
 	if (args[0] == NULL)
 	{
@@ -212,3 +168,58 @@ int execShell(char **args)
 	ret = myShellLaunch(args);
 	return ret;
 }
+
+int interactiveMode(){
+    char *line;
+    char **args;
+    while(line !='q'){
+        printf("myshell> ");
+        line = readLine();
+        args = getTokens(line);
+        execShell(args);
+        free(line);
+        free(args);
+    }
+	return 1;
+}
+
+int batchMode(char filename[100]){
+	printf("Received Script. Opening %s", filename);
+	int fin;
+	char line[200];
+	char **args;
+	fin = open(filename, O_RDONLY);
+	if (fin == -1){
+		perror(filename);
+		exit(EXIT_FAILURE);
+	}else{
+		printf("\nFile Opened. Parsing. Parsed commands displayed first.");
+		while(fgets(line, sizeof(line), fptr)!= NULL){
+			printf("\n%s", line);
+			args=splitLine(line);
+			execShell(args);
+		}
+	}
+	free(args);
+	close(fin);
+	return 1;
+}
+
+int main(int argc, char **argv){
+    printf("Hello! Welcome to our shell\n");
+    if(argc==1){
+    //Interactive mode
+        printf("\nType some commands to begin\n");        
+        interactiveMode();
+    }else if(argc==2){
+    //Batch mode
+        printf("\nProcessing file....");
+        batchMode(argv[1]);
+    }else{
+        printf("\n Too many args");
+    }
+	
+    return 0;
+}
+
+
