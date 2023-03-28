@@ -1,2 +1,2 @@
-void words_init(int fd);
+void words_init(char *, int);
 char *words_next(void);

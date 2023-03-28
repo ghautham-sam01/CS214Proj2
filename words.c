@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
@@ -8,36 +9,31 @@
 #define BUFSIZE 128
 #endif
 
-static char buf[BUFSIZE];
+#ifndef DEBUG
+#define DEBUG 0
+#endif
+
+static char *buf;
 static unsigned pos;
 static unsigned bytes;
 static int closed;
-static int input;
 
-void words_init(int fd)
+void words_init(char *buffer, int size)
 {
-	input = fd;
+	buf = buffer;
 	pos = 0;
-	bytes = 0;
+	bytes = size;
 	closed = 0;
 }
+
 
 char *words_next(void)
 {
 	if (closed) return NULL;
+	if (pos > bytes) return NULL;
 
 	// skip whitespace
-	while (1) {
-		// ensure we have a char to read
-		if (pos == bytes) {
-			bytes = read(input, buf, BUFSIZE);
-			if (bytes < 1) {
-				closed = 1;
-				return NULL;
-			}
-			pos = 0;
-		}
-		
+	while (1) {		
 		if (!isspace(buf[pos])) break;
 		
 		++pos;
@@ -48,39 +44,35 @@ char *words_next(void)
 	char *word = NULL;
 	int wordlen = 0;
 	do {
+		//continue until you find a space
 		++pos;
 		
-		if (pos == bytes) {
-			// save word so far
-			int fraglen = pos - start;
-			word = realloc(word, wordlen + fraglen + 1);
-			memcpy(word + wordlen, buf + start, fraglen);
-			wordlen += fraglen;
-		
-			// refresh the buffer
-			bytes = read(input, buf, BUFSIZE);
-			if (bytes < 1) {
-				closed = 1;
-				break;
-			}
-			pos = 0;
-			start = 0;
-		}
-		
-	} while (!isspace(buf[pos]));
+	} while (!isspace(buf[pos]) && (pos < bytes -1));
 	
 	// grab the word from the current buffer
 	// (Note: start == pos if we refreshed the buffer and got a space first.)
+	if(DEBUG){
+		printf("pos: %d\n", pos);
+		printf("start: %d\n", start);
+		printf("wordlen: %d\n", wordlen);
+	}
+
+	
 	if (start < pos) {
 		int fraglen = pos - start;
+		
+		if (DEBUG) printf("fraglen: %d\n", fraglen);
 		word = realloc(word, wordlen + fraglen + 1);
 		memcpy(word + wordlen, buf + start, fraglen);
 		wordlen += fraglen;
 	}
+
 	
 	if (word) {
 		word[wordlen] = '\0';
 	}
+
+	if (DEBUG) printf("word: %s\n", word);
 	
 	return word;
 }
