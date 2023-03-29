@@ -134,6 +134,12 @@ int myShellLaunch(char **args){
 			break;
 		}
 	}
+	if(input_redirect){
+		in_fd = open(in_file,O_RDONLY);
+		if (in_fd == -1) {
+			printf("myshell: input file open failed\n");
+		}
+	}
 	if (output_redirect) {
 		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP);
 		if (out_fd == -1) {
@@ -169,7 +175,7 @@ int myShellLaunch(char **args){
             }
 
             // execute left command
-            args[0] = &args[pipe_index-1];
+            args[0] = args[pipe_index-1];
             args[1] = NULL;
             pid_t pid_left = fork();
             if (pid_left == 0) {
@@ -185,7 +191,7 @@ int myShellLaunch(char **args){
             }
 
             // execute right command
-            args[0] = &args[pipe_index+1];
+            args[0] = args[pipe_index+1];
             args[1] = NULL;
             pid_t pid_right = fork();
             if (pid_right == 0) {
