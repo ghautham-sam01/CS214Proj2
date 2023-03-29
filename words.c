@@ -9,6 +9,10 @@
 #define BUFSIZE 128
 #endif
 
+#ifndef LISTSIZE
+#define LISTSIZE 10
+#endif
+
 #ifndef DEBUG
 #define DEBUG 0
 #endif
@@ -17,21 +21,59 @@ static char *buf;
 static unsigned pos;
 static unsigned bytes;
 static int closed;
+static int currSize;
 
 //takes char *buffer and size of buffer as input
 //currently parses separated by spaces need to account for special characters <, >, | 
-
 void words_init(char *buffer, int size)
 {
 	buf = buffer;
 	pos = 0;
 	bytes = size;
 	closed = 0;
+	currSize = 0;
+}
+
+char **get_args(void) {
+	if(DEBUG) {
+		printf("buffer: %s\n", buf);
+		printf("bytes: %d\n", bytes);
+	}
+
+	char *word;
+	int pos = 0;
+	int listSize = LISTSIZE;
+	char **words = malloc(sizeof(char*) * listSize);
+	while((word = words_next())) {
+		//if the list isn't big enough reallocate
+		//printf("word: %s\n", word);
+		if(pos >= LISTSIZE) {
+			listSize *= 2;
+			words = realloc(words, sizeof(char *) * listSize);
+		}
+		currSize++;
+		words[pos] = word;
+		//printf("words[pos]=%s\n", words[pos]);
+		//free(word);
+		//printf("words[pos]=%s\n", words[pos]);
+		pos++;
+	}
+	printf("done!\n");
+	return words;
+}
+
+void freeAll(char **list){
+	for(int i = 0; i < currSize; i++) {
+		free(list[i]);
+	}
 }
 
 
 char *words_next(void)
 {
+	//printf("buf: %s\n", buf);
+	//printf("bytes: %d\n", bytes);
+	//printf("pos: %d\n", pos);
 	if (closed) return NULL;
 	if (pos > bytes) return NULL;
 
