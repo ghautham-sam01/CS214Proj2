@@ -29,7 +29,13 @@ In order for our program to be considered correct it needs to satisfy the follow
     
 Test cases:
     
-1. In order to check property 1 we will use batchmode to run a file with the following lines 
+1. In order to check property 1 we will use batchmode to run a file with the following contents
+    
+    ```
+    pwd
+    cd foo
+    exit
+    ```
     
    If there are no 
     
