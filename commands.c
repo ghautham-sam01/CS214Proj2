@@ -82,7 +82,7 @@ check through the following directories for a file with the specified name:
 
 */
 int myShellLaunch(char **args){
-	// handle output redirection
+	// handle i/o redirection 
 	int output_redirect = 0, input_redirect=0 ,in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
 
 	char *in_file=NULL,*out_file = NULL;
