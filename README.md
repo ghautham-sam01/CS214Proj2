@@ -3,7 +3,7 @@
 GROUP MEMBERS: Kevin Su (ks1507), Ghautham Sambabu (gs878)
 
 
-General testing Plan:
+# General testing Plan:
 
 - use many different *.sh files with the naming pattern test<x>.sh and run them in one file test.c
 - depending on what argument test.c is passed it will execute the command found in the corresponding *.sh file
@@ -22,6 +22,9 @@ In order for our program to be considered correct it needs to satisfy the follow
 5. It should be able to handle pipes
 6. It should be able to handle extension 1
 7. It should be able to handle extension 2
+    
+Test cases:
+    
 
 # How to run code
 
