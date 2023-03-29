@@ -84,6 +84,10 @@ To start interactive mode:
 ```
 ./myshell
 ```
+To start batch mode: 
+```
+./myshell [file-path]    
+```
 
 # Proof of passing required properties
     
