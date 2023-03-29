@@ -20,8 +20,12 @@ In order for our program to be considered correct it needs to satisfy the follow
 4. It should be able to handle wildcards
     - if the name contains a * symbol the executed command should be run with all files that match the pattern of having the string before the * and end with the string after the *
 5. It should be able to handle pipes
-6. It should be able to handle extension 1
-7. It should be able to handle extension 2
+6. It should be able to handle extension 3.2 Home Directories
+    - When cd is called with no other arguments users should be brought back to the home directory obtained by getenv(HOME)
+    - When a pathname starts with ~/ it is starting from the home directory.
+7. It should be able to handle extension 3.5 Multiple Pipes 
+    - Our shell should be able to handle an arbitrary number of pipes between commands 
+    - for example foo | bar | baz | bap should send output from foo -> bar -> baz -> bap
     
 Test cases:
     
