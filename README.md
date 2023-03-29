@@ -35,9 +35,11 @@ make test2
 ```
 
 To run test cases (./[test-executable] [test-number])
+    
+Example to run test case 2:
 
 ```
-./test1 1
+./test 1
 ```
 
 # Proof of passing required properties
