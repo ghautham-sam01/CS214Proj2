@@ -16,11 +16,11 @@
 // Definitions
 char *builtin_cmd[] = {"cd", "pwd", "exit"};
 
-char *home = getenv("HOME");
+//char *home = getenv("HOME");
 
 char *routes[] = {"/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"};
 
-int (*builtin_func[]) (char **) = {&myShell_cd, &myShell_pwd, &myShell_exit}; // Array of function pointers for call from execShell
+int (*builtin_func[]) (char **, char **) = {&myShell_cd, &myShell_pwd, &myShell_exit}; // Array of function pointers for call from execShell
 
 int numBuiltin() // Function to return number of builtin commands
 {
@@ -33,8 +33,8 @@ int numRoutes() // Function to return number of builtin routes to check
 }
 
 // Builtin command definitions
-int myShell_cd(char **args){
-	if (args[1] == NULL || args[1] == '\0' || args[1] == ' ') 
+int myShell_cd(char **tokens, char **args){
+	if (args[1] == NULL || (strcmp(args[1], "\0") == 0)) 
 	{
 		perror("myShell_cd");
 		return 0;
@@ -42,11 +42,11 @@ int myShell_cd(char **args){
 	else 
 	{
 		//no args passed
-		if (args[1] == NULL) {
-			chidir(home);
-			return 1; 
-		}
-		else if (chdir(args[1]) != 0) 
+		//if (args[1] == NULL) {
+		//	chidir(home);
+		//	return 1; 
+		//}
+		if (chdir(args[1]) != 0) 
 		{
 			perror("myShell_cd");
 			return 0;
@@ -55,7 +55,7 @@ int myShell_cd(char **args){
 	return 1;
 }
 
-int myShell_pwd(char **args){
+int myShell_pwd(char **tokens, char **args){
 	char buf[256];
 
 	if(getcwd(buf, sizeof(buf)) == NULL) {
@@ -88,7 +88,7 @@ check through the following directories for a file with the specified name:
 6. /bin
 
 */
-int myShellLaunch(char **args){
+int myShellLaunch(char **tokens, char **args){
 	// handle output redirection
 	// '>' redirect output to file specified 
 	// should change stdout to the specified file
@@ -100,37 +100,35 @@ int myShellLaunch(char **args){
 	// if file doesn't exist then we should return an error
 	// ow proceed normally
 	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
-	int argsSize = sizeof(args)/sizeof(char *);
+
 	char *in_file=NULL,*out_file = NULL;
-	for (i = 0; args[i] != NULL; i++) {
-		if (strcmp(args[i],">")==0) {
-			//free(args[i]);
-			//args[i] = "\0";
+
+	for (i = 0; tokens[i] != NULL; i++) {
+		if (strcmp(tokens[i],">")==0) {
+			//tokens[i] = "\0";
 			output_redirect = 1;
 			// if arg after the redirection is NULL we have reached end of arg list
 			// display perror and return 0
-			if (args[i + 1] == NULL) {
+			if (tokens[i + 1] == NULL) {
 				printf("redirection error: no specified file\n");
 				return 0;
 			}
-			out_file = args[i+1];
-			//free(args[i+1]);
-			//args[i + 1] = "\0";
+			out_file = tokens[i+1];
+			//tokens[i + 1] = "\0";
 			break;
 		}
-		if (strcmp(args[i],"<")==0) {
-			//free(args[i]);
-			//args[i] = "\0";
+		if (strcmp(tokens[i],"<")==0) {
+			//tokens[i] = "\0";
 			input_redirect = 1;
 			// if arg after the redirection is NULL we have reached end of arg list
 			// display perror and return 0
-			if (args[i + 1] == NULL) {
+			if (tokens[i + 1] == NULL) {
 				printf("redirection error: no specified file\n");
 				return 0;
 			}
-			in_file = args[i+1];
-			//free(args[i+1]); 
-			//args[i + 1] = "\0";
+			in_file = tokens[i+1];
+			//tokens[i + 1] = "\0";
+			args = get_args(tokens);
 			break;
 		}
 	}
@@ -158,9 +156,9 @@ int myShellLaunch(char **args){
 	int p[2];
 	// handle pipes
 	int pipe_index = -1;
-	for (i = 0; args[i] != '\0'; i++) {
-		if (strcmp(args[i],"|")==0) {
-			args[i] = '\0';
+	for (i = 0; tokens[i] != '\0'; i++) {
+		if (strcmp(tokens[i],"|")==0) {
+			tokens[i] = '\0';
 			pipe_index = i;
 			break;
 		}
@@ -214,7 +212,7 @@ int myShellLaunch(char **args){
 	}
 	// ow just run 
 	else{
-		printf("normal exec");
+		printf("normal exec\n");
 		pid_t pid, wpid;
 		int status;
 		char *pname = NULL; 
@@ -233,7 +231,6 @@ int myShellLaunch(char **args){
 		if (pid == 0)
 		{
 			// The Child Process
-
 			if(output_redirect) { 
 				dup2(out_fd, STDOUT_FILENO);
 			}
@@ -272,7 +269,7 @@ int myShellLaunch(char **args){
 }
 
 // Function to execute command from terminal
-int execShell(char **args){
+int execShell(char **tokens, char **args){
 	int ret;
 	if (args[0] == NULL)
 	{
@@ -283,11 +280,11 @@ int execShell(char **args){
 	for (int i=0; i< numBuiltin(); i++) // numBuiltin() returns the number of builtin functions
 	{
 		if(strcmp(args[0], builtin_cmd[i])==0){ // Check if user function matches builtin function name
-			//printf("args[0]: %s\n", args[0]);
-			return (*builtin_func[i])(args); // Call respective builtin function with arguments
+
+			return (*builtin_func[i])(tokens, args); // Call respective builtin function with arguments
 		}
 	}
-	ret = myShellLaunch(args);
+	ret = myShellLaunch(tokens, args);
 	return ret;
 }
 

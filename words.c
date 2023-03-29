@@ -40,13 +40,13 @@ int numDelimiters() {
 }
 
 //
-char **get_args(void) {
+char **get_tokens(void) {
+	printf("get tokens\n");
 	if(DEBUG) {
 		printf("buffer: %s\n", buf);
 		printf("bytes: %d\n", bytes);
 	}
 	int i;
-	int isDelim = 0;
 	char *word;
 	int pos = 0;
 	int listSize = LISTSIZE;
@@ -55,7 +55,7 @@ char **get_args(void) {
 		//if the list isn't big enough reallocate
 		//printf("word: %s\n", word);
 		if(pos >= LISTSIZE) {
-			listSize *= 2;
+			listSize ++;
 			words = realloc(words, sizeof(char *) * listSize);
 		}
 		/**
@@ -69,6 +69,11 @@ char **get_args(void) {
 			words[pos] = word;
 		}
 		*/
+
+		//check if word has a wildcard "*" in it 
+		//if so need to do wildcard expansion
+
+
 		words[pos] = word;
 		currSize++;
 		pos++;
@@ -78,8 +83,8 @@ char **get_args(void) {
 		//printf("words[pos]=%s\n", words[pos]);
 	}
 
-	printf("currSize: %d\n", currSize);
-	free(words[currSize - 1 ]);
+	//printf("currSize: %d\n", currSize);
+	free(words[currSize - 1]);
 	words[currSize - 1] = NULL;
 
 
@@ -88,24 +93,63 @@ char **get_args(void) {
 		printf("element %d: %s\n", i, words[i]);
 	}
 
-
-	//printf("done!\n");
 	return words;
 }
 
-void freeAll(char **list){
-	int i, pos = 0;
-	for(i = 0; i < currSize; i++){
-		printf("element %d: %s\n", i, list[i]);
+char **get_args(char **tokens) {
+
+	printf("get args\n");
+	//go through tokens list and create a list of arguments
+	//all tokens which aren't in the delimiters list {">", "<", "|"}
+	char **args = malloc(sizeof(char *) * currSize);
+	int i, index = 0;
+	for(i = 0; i < (currSize - 1); i++) {	
+		// check if current string is ">", "<", or "|"
+		// if it is don't include this token and the next one in the args list
+		char *curr = malloc(sizeof(char *));
+		strcpy(curr, tokens[i]);
+		if((strcmp(tokens[i], ">") == 0) || (strcmp(tokens[i], "<") == 0) || strcmp(tokens[i], "|") == 0) {
+			i ++;
+		} else {
+			args[index] = curr;
+			index++;
+		}
 	}
-	while(list[pos] != NULL) {
-		printf("list[pos]: %s\n", list[pos]);
-		free(list[pos]);
+	printf("currSize: %d\n", currSize);
+	printf("index: %d\n", index);
+	args[index] = NULL;
+
+	/**
+		for(i = 0; i < (index); i++){
+		printf("element %d: %s\n", i, args[i]);
+	}
+
+	*/
+
+	printf("done !\n");
+	return args;
+}
+
+void freeAll(char **tokens, char **args){
+	int pos = 0;
+	printf("tokens\n");
+	while(tokens[pos] != NULL) {
+		printf("tokens[pos]: %s\n", tokens[pos]);
+		if((strcmp(tokens[pos], "<") != 0) && (strcmp(tokens[pos], ">") != 0) && (strcmp(tokens[pos], "|") != 0) && (strcmp(tokens[pos], "\0") != 0)) {
+			free(tokens[pos]);
+		}
+		pos++;
+	}
+
+	pos = 0;
+	printf("args\n");
+	while(args[pos] != NULL) {
+		printf("element %d: %s\n", pos, args[pos]);
+		free(args[pos]);
 		pos++;
 	}
 
 }
-
 
 char *words_next(void)
 {

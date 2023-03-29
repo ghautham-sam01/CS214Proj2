@@ -73,6 +73,7 @@ char *readLine(int fin) {
 int interactiveMode() {
     char *line;
     char **args;
+    char **tokens;
     int status = 1;
 
     while(1) { 
@@ -88,16 +89,18 @@ int interactiveMode() {
         line = readLine(STDIN_FILENO);
         //do tokenization
         words_init(line, linePos);
-        args = get_args();
+        tokens = get_tokens();
+        args = get_args(tokens);
         //exec
-        status = execShell(args);
+        status = execShell(tokens, args);
         printf("execution complete, status: %d\n", status);
 
         //printf("status: %d\n", status);
 
         //printf("line: %s\n", line);
-        freeAll(args);
+        freeAll(tokens, args);
         free(args);
+        free(tokens);
         free(line);
         //free(lineBuffer);
     }
@@ -190,10 +193,13 @@ void dumpLine(void)
 
     write(1, lineBuffer, linePos);
 
-    char **args = get_args();
-    int status = execShell(args);
-    freeAll(args);
+    char **tokens = get_tokens();
+    char **args = get_args(tokens);
+
+    int status = execShell(tokens, args);
     free(args);
+    free(tokens);
+    freeAll(args, tokens);
     // dump output to stdout
     // FIXME should confirm that all bytes were written
 }
