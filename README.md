@@ -80,6 +80,11 @@ Example to run test case 1:
 ./test 1
 ```
 
+To start interactive mode: 
+```
+./myshell
+```
+
 # Proof of passing required properties
     
 test case 1.)
