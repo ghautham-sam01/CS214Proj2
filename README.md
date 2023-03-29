@@ -100,6 +100,29 @@ echo > baz foo bar
 ```
 
 test case 2.)
+    
+```
+sort < foo > bar
+sort > bar < foo
+```
+                    
 test case 3.)
+
+```
+echo foo > bar | cat
+echo foo > bar > baz
+cat < foo < bar
+echo foo | cat < bar
+```                    
 test case 4.)
+                    
+```
+echo foo bar > baz
+echo foo bar>baz
+echo foo > baz bar
+echo foo>baz bar
+echo > baz foo bar
+echo>baz foo bar
+```                         
+                    
                 
