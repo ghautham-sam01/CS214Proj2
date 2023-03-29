@@ -80,11 +80,49 @@ Example to run test case 1:
 ./test 1
 ```
 
+To start interactive mode: 
+```
+./myshell
+```
+To start batch mode: 
+```
+./myshell [file-path]    
+```
+
 # Proof of passing required properties
     
 test case 1.)
 
+```
+echo foo bar > baz
+echo foo > baz bar
+echo > baz foo bar
+```
+
 test case 2.)
+    
+```
+sort < foo > bar
+sort > bar < foo
+```
+                    
 test case 3.)
+
+```
+echo foo > bar | cat
+echo foo > bar > baz
+cat < foo < bar
+echo foo | cat < bar
+```                    
 test case 4.)
+                    
+```
+echo foo bar > baz
+echo foo bar>baz
+echo foo > baz bar
+echo foo>baz bar
+echo > baz foo bar
+echo>baz foo bar
+```                         
+                    
                 
