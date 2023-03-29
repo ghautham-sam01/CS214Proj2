@@ -29,7 +29,24 @@ In order for our program to be considered correct it needs to satisfy the follow
     
 Test cases:
     
+1. In order to check property 1 we will use batchmode to run a file with the following lines 
+    
+   If there are no 
+    
+2. In order to check property 2 we will use batchmode to run a file with the following contents
+    
+3. In order to check property 3 we will use batchmode to run a file with the following contents
+    
+4. In order to check property 4 we will use batchmode to run a file with the following contents    
+    
+5. In order to check property 5 we will use batchmode to run a file with the following contents    
 
+6. In order to check property 6 we will use batchmode to run a file with the following contents    
+    
+7. In order to check property 7 we will use batchmode to run a file with the following contents    
+    
+
+    
 # How to run code
 
 First need to build executable files:
@@ -43,7 +60,7 @@ make test2
 
 To run test cases (./[test-executable] [test-number])
     
-Example to run test case 2:
+Example to run test case 1:
 
 ```
 ./test 1
