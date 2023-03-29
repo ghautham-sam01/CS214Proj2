@@ -58,6 +58,9 @@ char **get_args(void) {
 		//printf("words[pos]=%s\n", words[pos]);
 		pos++;
 	}
+	if(strcmp(words[0],"pwd")!=0||strcmp(words[0],"cd")!=0||strcmp(words[0],"exit")!=0){
+		words[pos-1]=NULL;
+	}
 	printf("done!\n");
 	return words;
 }
@@ -106,7 +109,7 @@ char *words_next(void)
 	if (start < pos) {
 		int fraglen = pos - start;
 		
-		if (DEBUG) printf("fraglen: %d\n", fraglen);
+		if (DEBUG) printf("fragl en: %d\n", fraglen);
 		word = realloc(word, wordlen + fraglen + 1);
 		memcpy(word + wordlen, buf + start, fraglen);
 		wordlen += fraglen;
