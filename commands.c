@@ -99,7 +99,7 @@ int myShellLaunch(char **args){
 	// should change stdin to the specified file
 	// if file doesn't exist then we should return an error
 	// ow proceed normally
-	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
+	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i,nPipes;
 	int argsSize = sizeof(args)/sizeof(char *);
 	char *in_file=NULL,*out_file = NULL;
 	for (i = 0; args[i] != NULL; i++) {
@@ -132,7 +132,9 @@ int myShellLaunch(char **args){
 			//free(args[i+1]); 
 			//args[i + 1] = "\0";
 			break;
-		}
+		}if(strcmp(args[i],"|")==0){
+            nPipes++;
+        }
 	}
 	if(input_redirect){
 		in_fd = open(in_file,O_RDONLY);
@@ -155,7 +157,63 @@ int myShellLaunch(char **args){
 			return 0;
 		}
 	}
-	int p[2];
+
+	if(nPipes!=0){
+        int p[nPipes*2];
+        pid_t pid[nPipes+1];
+        // handle pipes
+        for(i=0;i<nPipes;i++){
+        if (pipe(p + i*2) == -1) {
+            perror("pipe");
+            exit(1);
+            }
+        }
+          /* Fork all the child processes */
+        for (int i = 0; i <= nPipes; i++) {
+            pid[i] = fork();
+            if (pid[i] == -1) {
+            perror("fork");
+            exit(1);
+            } else if (pid[i] == 0) {
+            /* Child process: execute the appropriate command */
+            if (i == 0) {
+                /* First command: read from standard input */
+                close(p[0]);
+                dup2(p[1], STDOUT_FILENO);
+                close(p[1]);
+                execlp(args[1], args[1], NULL);
+                perror("execlp");
+                exit(1);
+            } else if (i == nPipes) {
+                /* Last command: write to standard output */
+                close(p[(i-1)*2]);
+                dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
+                close(p[(i-1)*2 + 1]);
+                execlp(args[i+1], args[i+1], NULL);
+                perror("execlp");
+                exit(1);
+            } else {
+                /* Middle commands: read from previous pipe, write to next pipe */
+                close(p[(i-1)*2]);
+                dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
+                close(p[(i-1)*2 + 1]);
+                close(p[i*2 + 1]);
+                dup2(p[i*2], STDIN_FILENO);
+                close(p[i*2]);
+                execlp(args[i+1], args[i+1], NULL);
+                perror("execlp");
+                exit(1);
+            }
+            }
+        }
+        
+        /* Wait for all child processes to complete */
+        for (int i = 0; i <= nPipes; i++) {
+            waitpid(pid[i], NULL, 0);
+        }
+    }
+
+	/*int p[2];
 	// handle pipes
 	int pipe_index = -1;
 	for (i = 0; args[i] != '\0'; i++) {
@@ -211,7 +269,7 @@ int myShellLaunch(char **args){
             close(p[1]);
             waitpid(pid_left, NULL, 0);
             waitpid(pid_right,NULL,0);
-	}
+	}*/
 	// ow just run 
 	else{
 		printf("normal exec");
