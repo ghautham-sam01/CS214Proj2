@@ -11,12 +11,20 @@ GROUP MEMBERS: Kevin Su (ks1507), Ghautham Sambabu (gs878)
 In order for our program to be considered correct it needs to satisfy the following conditions:
 
 1. It should be able to run the built-in commands pwd, exit, and cd 
-    - if there is an error, mysh should print an error message to standard error and set the last exit status to 1
+    - if there is an error, mysh should print an error message to standard error and set the last exit status to 0
     - the next command prompt after an error should be "!mysh >" instead of "mysh >"
 2. It should create a subprocess when passed a pathname to an executable
-    - if the specified program cannot be executed mysh should print an error message and set the last exit status to 1
+    - if the specified program cannot be executed mysh should print an error message and set the last exit status to 0
 3. It should create a subprocess when passed a bare name by looking through certain directories
-    - if the bare name doesn't exist it should set the last exit status to 1
+    - if the bare name doesn't exist in any of the directiories it should set the last exit status to 0
+    - ow the program should execute the command given by the bare name with the given arguments
+    - Our program should search through the following directories: 
+        1. /usr/local/sbin
+        2. /usr/local/bin
+        3. /usr/sbin
+        4. /usr/bin
+        5. /sbin
+        6. /bin
 4. It should be able to handle wildcards
     - if the name contains a * symbol the executed command should be run with all files that match the pattern of having the string before the * and end with the string after the *
 5. It should be able to handle pipes
