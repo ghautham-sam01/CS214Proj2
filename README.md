@@ -84,6 +84,12 @@ Example to run test case 1:
     
 test case 1.)
 
+```
+echo foo bar > baz
+echo foo > baz bar
+echo > baz foo bar
+```
+
 test case 2.)
 test case 3.)
 test case 4.)
