@@ -6,4 +6,5 @@ int myShell_pwd(char **args);
 int myShell_exit();
 int myShellLaunch(char **args);
 int execShell(char **args);
+char *traverse(char *, char *);
 #endif

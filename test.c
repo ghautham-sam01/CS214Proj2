@@ -1,4 +1,5 @@
-#include myshell.h
+#include "myshell.h"
+#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,22 +17,53 @@ int main(int argc, char **argv) {
 
     case 1: 
         pid = fork();
-        if (pid == 0) {
+        if (pid < 0) { 
+            perror("A fork error has occured");
+            exit(EXIT_FAILURE);
+        }
+        else if (pid == 0) {
             //in the child process
-            execl('myshell.c', 'myshell.c', test1.sh, NULL)
+            execlp("./myshell", "myshell", "test1.sh", NULL);
+            printf("execlp didn't work :( \n");
         }
         //clean up child process
-        wait(NULL);
+        else {
+            wait(NULL);
+        }
     
 
     case 2: 
         pid = fork();
-        if (pid == 0) {
+        if (pid < 0) { 
+            perror("A fork error has occured");
+            exit(EXIT_FAILURE);
+        }
+        else if (pid == 0) {
             //in the child process
-            execl('myshell.c', 'myshell.c', test2.sh, NULL)
+            execlp("./myshell", "myshell", "test2.sh", NULL);
+            printf("execlp didn't work :( \n");
         }
         //clean up child process
-        wait(NULL);
+        else {
+            wait(NULL);
+        }
+
+    case 3: 
+        pid = fork();
+        if (pid < 0) { 
+            perror("A fork error has occured");
+            exit(EXIT_FAILURE);
+        }
+        else if (pid == 0) {
+            //in the child process
+            char *args[] = {"echo", "hello world", NULL};
+            execvp("/usr/bin/ls", args);
+            printf("execvp didn't work :( \n");
+        }
+        //clean up child process
+        else {
+            wait(NULL);
+        }
     
     //execute test3.sh etc etc
 

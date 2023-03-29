@@ -92,6 +92,8 @@ int interactiveMode() {
         //exec
         status = execShell(args);
 
+        //printf("status: %d\n", status);
+
         //printf("line: %s\n", line);
         freeAll(args);
         free(args);
