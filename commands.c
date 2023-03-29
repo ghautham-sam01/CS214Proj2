@@ -65,7 +65,7 @@ int myShell_exit(){
 // Function to create child process and run command
 int myShellLaunch(char **args){
 	// handle output redirection
-	int output_redirect = 0,in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
+	int output_redirect = 0, input_redirect=0 ,in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
 
 	char *in_file=NULL,*out_file = NULL;
 	for (i = 0; args[i] != '\0'; i++) {
@@ -77,13 +77,19 @@ int myShellLaunch(char **args){
 		}
 		if (strcmp(args[i],"<")==0) {
 			args[i] = '\0';
-			output_redirect = 1;
+			input_redirect = 1;
 			in_file = &args[i+1];
 			break;
 		}
 	}
+	if(input_redirect){
+		in_fd = open(in_file,O_RDONLY);
+		if (in_fd == -1) {
+			printf("myshell: input file open failed\n");
+		}
+	}
 	if (output_redirect) {
-		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC);
+		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC,0644);
 		if (out_fd == -1) {
 			printf("myshell: output file open failed\n");
 		}
@@ -106,7 +112,7 @@ int myShellLaunch(char **args){
             }
 
             // execute left command
-            args[0] = &args[pipe_index-1];
+            args[0] = args[pipe_index-1];
             args[1] = NULL;
             pid_t pid_left = fork();
             if (pid_left == 0) {
@@ -122,7 +128,7 @@ int myShellLaunch(char **args){
             }
 
             // execute right command
-            args[0] = &args[pipe_index+1];
+            args[0] = args[pipe_index+1];
             args[1] = NULL;
             pid_t pid_right = fork();
             if (pid_right == 0) {
