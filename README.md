@@ -81,3 +81,10 @@ Example to run test case 1:
 ```
 
 # Proof of passing required properties
+    
+test case 1.)
+
+test case 2.)
+test case 3.)
+test case 4.)
+                
