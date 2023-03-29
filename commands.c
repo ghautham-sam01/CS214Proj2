@@ -211,66 +211,7 @@ int myShellLaunch(char **args){
         for (int i = 0; i <= nPipes; i++) {
             waitpid(pid[i], NULL, 0);
         }
-    }
-
-	/*int p[2];
-	// handle pipes
-	int pipe_index = -1;
-	for (i = 0; args[i] != '\0'; i++) {
-		if (strcmp(args[i],"|")==0) {
-			args[i] = '\0';
-			pipe_index = i;
-			break;
-		}
-	}
-
-	//need to pipe
-    if (pipe_index != -1) {
-			printf("pipe exec");
-            // create pipe
-            if (pipe(p) == -1) {
-                printf("myshell: pipe creation failed\n");
-            }
-
-            // execute left command
-            args[0] = args[pipe_index-1];
-            args[1] = NULL;
-            pid_t pid_left = fork();
-            if (pid_left == 0) {
-                dup2(in_fd, STDIN_FILENO);
-                close(p[0]); // close unused read end
-                dup2(p[1], STDOUT_FILENO);
-                close(p[1]); // close write end
-                execvp(args[0], args);
-                printf("myshell: command not found: %s\n", args[0]);
-                exit(0);
-            } else if (pid_left < 0) {
-                printf("myshell: fork failed\n");
-            }
-
-            // execute right command
-            args[0] = args[pipe_index+1];
-            args[1] = NULL;
-            pid_t pid_right = fork();
-            if (pid_right == 0) {
-                dup2(p[0], STDIN_FILENO);
-                close(p[1]); // close unused write end
-                dup2(out_fd, STDOUT_FILENO);
-                close(p[0]); // close read end
-                execvp(args[0], args);
-                printf("myshell: command not found: %s\n", args[0]);
-                exit(0);
-            } else if (pid_right < 0) {
-                printf("myshell: fork failed\n");
-            }
-
-            // wait for both child processes to finish
-            close(p[0]);
-            close(p[1]);
-            waitpid(pid_left, NULL, 0);
-            waitpid(pid_right,NULL,0);
-	}*/
-	// ow just run 
+    }	// ow just run 
 	else{
 		printf("normal exec");
 		pid_t pid, wpid;
