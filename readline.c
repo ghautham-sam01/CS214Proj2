@@ -91,6 +91,7 @@ int interactiveMode() {
         args = get_args();
         //exec
         status = execShell(args);
+        printf("execution complete, status: %d\n", status);
 
         //printf("status: %d\n", status);
 

@@ -39,6 +39,7 @@ int numDelimiters() {
 	return sizeof(delimiters)/sizeof(char *);
 }
 
+//
 char **get_args(void) {
 	if(DEBUG) {
 		printf("buffer: %s\n", buf);
@@ -71,30 +72,38 @@ char **get_args(void) {
 		words[pos] = word;
 		currSize++;
 		pos++;
-		isDelim = 0;
+		//isDelim = 0;
 		//printf("words[pos]=%s\n", words[pos]);
 		//free(word);
 		//printf("words[pos]=%s\n", words[pos]);
 	}
 
 	printf("currSize: %d\n", currSize);
+	free(words[currSize - 1 ]);
 	words[currSize - 1] = NULL;
 
-	if(DEBUG) { 
-		//debug check the contents of words array
-		for(i = 0; i < currSize; i++){
-			printf("element %d: %s\n", i, words[i]);
-		}
+
+	//debug check the contents of words array
+	for(i = 0; i < currSize; i++){
+		printf("element %d: %s\n", i, words[i]);
 	}
+
 
 	//printf("done!\n");
 	return words;
 }
 
 void freeAll(char **list){
-	for(int i = 0; i < currSize; i++) {
-		free(list[i]);
+	int i, pos = 0;
+	for(i = 0; i < currSize; i++){
+		printf("element %d: %s\n", i, list[i]);
 	}
+	while(list[pos] != NULL) {
+		printf("list[pos]: %s\n", list[pos]);
+		free(list[pos]);
+		pos++;
+	}
+
 }
 
 
@@ -117,11 +126,27 @@ char *words_next(void)
 	int start = pos;
 	char *word = NULL;
 	int wordlen = 0;
+
+	// check for <, >, or |
+	if(buf[pos] == '<') {
+		pos++;
+		return "<";
+	} 
+	else if(buf[pos] == '>') {
+		pos++;
+		return ">";
+	}
+	else if(buf[pos] == '|') {
+		pos++;
+		return "|";
+	}
+
+
 	do {
 		//continue until you find a space
 		++pos;
 		
-	} while (!isspace(buf[pos]) && (pos < bytes));
+	} while (!isspace(buf[pos]) && (pos < bytes) && (buf[pos] != '>') && (buf[pos] != '<') && (buf[pos] != '|'));
 	
 	// grab the word from the current buffer
 	// (Note: start == pos if we refreshed the buffer and got a space first.)
@@ -135,7 +160,7 @@ char *words_next(void)
 	if (start < pos) {
 		int fraglen = pos - start;
 		
-		if (DEBUG) printf("fragl en: %d\n", fraglen);
+		if (DEBUG) printf("fraglen: %d\n", fraglen);
 		word = realloc(word, wordlen + fraglen + 1);
 		memcpy(word + wordlen, buf + start, fraglen);
 		wordlen += fraglen;

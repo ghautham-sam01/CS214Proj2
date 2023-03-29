@@ -16,6 +16,8 @@
 // Definitions
 char *builtin_cmd[] = {"cd", "pwd", "exit"};
 
+char *home = getenv("HOME");
+
 char *routes[] = {"/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"};
 
 int (*builtin_func[]) (char **) = {&myShell_cd, &myShell_pwd, &myShell_exit}; // Array of function pointers for call from execShell
@@ -39,7 +41,12 @@ int myShell_cd(char **args){
 	} 
 	else 
 	{
-		if (chdir(args[1]) != 0) 
+		//no args passed
+		if (args[1] == NULL) {
+			chidir(home);
+			return 1; 
+		}
+		else if (chdir(args[1]) != 0) 
 		{
 			perror("myShell_cd");
 			return 0;
@@ -83,27 +90,63 @@ check through the following directories for a file with the specified name:
 */
 int myShellLaunch(char **args){
 	// handle output redirection
-	int output_redirect = 0,in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
-
+	// '>' redirect output to file specified 
+	// should change stdout to the specified file
+	// if file exists then overwrite it 
+	// ow create a new file
+	
+	// '<' redirect input to file specified
+	// should change stdin to the specified file
+	// if file doesn't exist then we should return an error
+	// ow proceed normally
+	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
+	int argsSize = sizeof(args)/sizeof(char *);
 	char *in_file=NULL,*out_file = NULL;
-	for (i = 0; args[i] != '\0'; i++) {
+	for (i = 0; args[i] != NULL; i++) {
 		if (strcmp(args[i],">")==0) {
-			args[i] = '\0';
+			//free(args[i]);
+			//args[i] = "\0";
 			output_redirect = 1;
-			out_file = &args[i+1];
+			// if arg after the redirection is NULL we have reached end of arg list
+			// display perror and return 0
+			if (args[i + 1] == NULL) {
+				printf("redirection error: no specified file\n");
+				return 0;
+			}
+			out_file = args[i+1];
+			//free(args[i+1]);
+			//args[i + 1] = "\0";
 			break;
 		}
 		if (strcmp(args[i],"<")==0) {
-			args[i] = '\0';
-			output_redirect = 1;
-			in_file = &args[i+1];
+			//free(args[i]);
+			//args[i] = "\0";
+			input_redirect = 1;
+			// if arg after the redirection is NULL we have reached end of arg list
+			// display perror and return 0
+			if (args[i + 1] == NULL) {
+				printf("redirection error: no specified file\n");
+				return 0;
+			}
+			in_file = args[i+1];
+			//free(args[i+1]); 
+			//args[i + 1] = "\0";
 			break;
 		}
 	}
 	if (output_redirect) {
-		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC);
+		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP);
 		if (out_fd == -1) {
-			printf("myshell: output file open failed\n");
+			perror("myShell: ");
+			return 0;
+		}
+	}
+
+	if (input_redirect) {
+		in_fd = open(out_file, O_RDONLY);
+		if (out_fd == -1) {
+			perror("myShell: ");
+			return 0;
 		}
 	}
 	int p[2];
@@ -117,7 +160,9 @@ int myShellLaunch(char **args){
 		}
 	}
 
-      if (pipe_index != -1) {
+	//need to pipe
+    if (pipe_index != -1) {
+			printf("pipe exec");
             // create pipe
             if (pipe(p) == -1) {
                 printf("myshell: pipe creation failed\n");
@@ -160,13 +205,37 @@ int myShellLaunch(char **args){
             close(p[1]);
             waitpid(pid_left, NULL, 0);
             waitpid(pid_right,NULL,0);
-	}else{
+	}
+	// ow just run 
+	else{
+		printf("normal exec");
 		pid_t pid, wpid;
 		int status;
+		char *pname = NULL; 
+		for(int i = 0; i < numRoutes(); i++) {
+			pname = traverse(routes[i], args[0]);
+			if(pname != NULL) break;
+		}
+		//what should it do if the pname is not recognized
+		//probably throw an error here
+		if(pname == NULL) {
+			perror("myShell");
+			free(pname);
+			return 0;
+		}
 		pid = fork();
 		if (pid == 0)
 		{
 			// The Child Process
+
+			if(output_redirect) { 
+				dup2(out_fd, STDOUT_FILENO);
+			}
+
+			if(input_redirect) { 
+				dup2(in_fd, STDIN_FILENO);
+			}
+
 			if (execvp(args[0], args) == -1)
 			{
 				perror("myShell: ");
@@ -185,6 +254,13 @@ int myShellLaunch(char **args){
 				wpid = waitpid(pid, &status, WUNTRACED);
 			} while (!WIFEXITED(status) && !WIFSIGNALED(status));
 		}
+		if(input_redirect) {
+			close(in_fd);
+		}
+		if(output_redirect) {
+			close(out_fd);
+		}
+		free(pname);
 	}
 	return 1;
 }

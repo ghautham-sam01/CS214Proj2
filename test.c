@@ -56,8 +56,8 @@ int main(int argc, char **argv) {
         }
         else if (pid == 0) {
             //in the child process
-            char *args[] = {"echo", "hello world", NULL};
-            execvp("/usr/bin/ls", args);
+            char *args[] = {"echo", "hello world", NULL , "fffff", NULL};
+            execvp("/bin/echo", args);
             printf("execvp didn't work :( \n");
         }
         //clean up child process
