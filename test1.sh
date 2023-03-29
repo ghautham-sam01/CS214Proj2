@@ -1,2 +1,3 @@
-echo hello echo helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho hello echo hello echo helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho helloecho hello
-cat test1.txt > test2.txt
+pwd
+cd foo
+exit

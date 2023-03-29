@@ -22,6 +22,7 @@ static unsigned pos;
 static unsigned bytes;
 static int closed;
 static int currSize;
+char *delimiters[] = {"\0", "\n", "\r"};
 
 //takes char *buffer and size of buffer as input
 //currently parses separated by spaces need to account for special characters <, >, | 
@@ -34,12 +35,17 @@ void words_init(char *buffer, int size)
 	currSize = 0;
 }
 
+int numDelimiters() { 
+	return sizeof(delimiters)/sizeof(char *);
+}
+
 char **get_args(void) {
 	if(DEBUG) {
 		printf("buffer: %s\n", buf);
 		printf("bytes: %d\n", bytes);
 	}
-
+	int i;
+	int isDelim = 0;
 	char *word;
 	int pos = 0;
 	int listSize = LISTSIZE;
@@ -51,17 +57,37 @@ char **get_args(void) {
 			listSize *= 2;
 			words = realloc(words, sizeof(char *) * listSize);
 		}
-		currSize++;
+		/**
+		//check if current word isn't a delimiter
+		for(i = 0; i < numDelimiters(); i++) {
+			if(strcmp(word, "\0") == 0) {
+				isDelim = 1;
+			}
+		}
+		if(!isDelim){
+			words[pos] = word;
+		}
+		*/
 		words[pos] = word;
+		currSize++;
+		pos++;
+		isDelim = 0;
 		//printf("words[pos]=%s\n", words[pos]);
 		//free(word);
 		//printf("words[pos]=%s\n", words[pos]);
-		pos++;
 	}
-	if(strcmp(words[0],"pwd")!=0||strcmp(words[0],"cd")!=0||strcmp(words[0],"exit")!=0){
-		words[pos-1]=NULL;
+
+	printf("currSize: %d\n", currSize);
+	words[currSize - 1] = NULL;
+
+	if(DEBUG) { 
+		//debug check the contents of words array
+		for(i = 0; i < currSize; i++){
+			printf("element %d: %s\n", i, words[i]);
+		}
 	}
-	printf("done!\n");
+
+	//printf("done!\n");
 	return words;
 }
 

@@ -1,3 +1,5 @@
+#define _DEFAULT_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,6 +7,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <wait.h>
+#include <dirent.h>
 
 #include "commands.h"
 
@@ -13,6 +16,8 @@
 // Definitions
 char *builtin_cmd[] = {"cd", "pwd", "exit"};
 
+char *routes[] = {"/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"};
+
 int (*builtin_func[]) (char **) = {&myShell_cd, &myShell_pwd, &myShell_exit}; // Array of function pointers for call from execShell
 
 int numBuiltin() // Function to return number of builtin commands
@@ -20,20 +25,24 @@ int numBuiltin() // Function to return number of builtin commands
 	return sizeof(builtin_cmd)/sizeof(char *);
 }
 
+int numRoutes() // Function to return number of builtin routes to check 
+{
+	return sizeof(routes)/sizeof(char *);
+}
+
 // Builtin command definitions
 int myShell_cd(char **args){
 	if (args[1] == NULL || args[1] == '\0' || args[1] == ' ') 
 	{
-		perror("cd: expected argument to \"cd\"\n");
-		exit(EXIT_FAILURE);
-		chdir(getenv("HOME"));
+		perror("myShell_cd");
+		return 0;
 	} 
 	else 
 	{
 		if (chdir(args[1]) != 0) 
 		{
-			perror("cd: No such file or directory");
-			exit(EXIT_FAILURE);
+			perror("myShell_cd");
+			return 0;
 		}
 	}
 	return 1;
@@ -43,26 +52,35 @@ int myShell_pwd(char **args){
 	char buf[256];
 
 	if(getcwd(buf, sizeof(buf)) == NULL) {
-		perror("pwd error");
+		perror("myShell_pwd");
+		return 0;
 	}
 	else {
 		printf("%s\n", buf);
 	}
-	/**
-	
-	NEED TO IMPLEMENT
-	
-	*/
+
 	return 1;
 }
 
 int myShell_exit(){
 	printf("mysh: exiting\n");
 	exit(EXIT_SUCCESS);
-	return 0;
+	return 1;
 }
 
 // Function to create child process and run command
+/**
+function requested is not a built-in function 
+check through the following directories for a file with the specified name: 
+
+1. /usr/local/sbin
+2. /usr/local/bin
+3. /usr/sbin
+4. /usr/bin
+5. /sbin
+6. /bin
+
+*/
 int myShellLaunch(char **args){
 	// handle output redirection
 	int output_redirect = 0, input_redirect=0 ,in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
@@ -197,3 +215,57 @@ int execShell(char **args){
 	return ret;
 }
 
+char *traverse(char *dname, char *target)
+{
+    struct dirent *de;
+    long offset;
+    int flen;
+    int dlen = strlen(dname);
+    char *pname;
+    DIR *dp = opendir(dname);
+    if (!dp) {
+        perror(dname);
+        return NULL;
+    }
+
+    // construct new path
+    flen = strlen(target);
+    pname = malloc(dlen + flen + 2);
+    memcpy(pname, dname, dlen);
+    pname[dlen] = '/';
+    memcpy(pname + dlen + 1, target, flen);
+    pname[dlen + 1 + flen] = '\0';
+
+    //printf("Traversing %s\n", dname);
+    //check if target exists in current directory
+    //printf("checking for %s\n", pname);
+    if (access(pname, F_OK) == 0) {
+        //exists in current directory
+        return pname;
+        printf("exists !\n");
+    } 
+    while ((de = readdir(dp))) {
+        //printf("%s/%s %d\n", dname, de->d_name, de->d_type);
+
+        if (de->d_type == DT_DIR && de->d_name[0] != '.') {
+            // construct new path
+            flen = strlen(de->d_name);
+            pname = malloc(dlen + flen + 2);
+            memcpy(pname, dname, dlen);
+            pname[dlen] = '/';
+            memcpy(pname + dlen + 1, de->d_name, flen);
+            pname[dlen + 1 + flen] = '\0';
+            // save location in directory
+            offset = telldir(dp);
+            closedir(dp);
+            // recursively traverse subdirectory
+            traverse(pname, target);
+            free(pname);
+            // restore position in directory
+            dp = opendir(dname); // FIXME: check for success
+            seekdir(dp, offset);
+        }
+    }   
+    closedir(dp);
+    return NULL;
+}
