@@ -23,7 +23,7 @@ In order for our program to be considered correct it needs to satisfy the follow
 6. It should be able to handle extension 1
 7. It should be able to handle extension 2
 
-#How to run code
+# How to run code
 
 First need to build executable files:
 
