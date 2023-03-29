@@ -82,50 +82,109 @@ check through the following directories for a file with the specified name:
 
 */
 int myShellLaunch(char **args){
-	pid_t pid, wpid;
-	int status;
-	char *pname;
+	// handle output redirection
+	int output_redirect = 0,in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
 
-	//check for args[0] existence in any of the routes[]
-	//if exists then run fork and exec as normal 
-	//ow give perror() and 
-	for(int i = 0; i < numRoutes(); i++) {
-		pname = traverse(routes[i], args[0]);
-		if(pname != NULL){
+	char *in_file=NULL,*out_file = NULL;
+	for (i = 0; args[i] != '\0'; i++) {
+		if (strcmp(args[i],">")==0) {
+			args[i] = '\0';
+			output_redirect = 1;
+			out_file = &args[i+1];
+			break;
+		}
+		if (strcmp(args[i],"<")==0) {
+			args[i] = '\0';
+			output_redirect = 1;
+			in_file = &args[i+1];
 			break;
 		}
 	}
-	
-	if(pname == NULL) { 
-		perror(args[0]);
-		return 0;
-	}
-
-	printf("pname: %s\n", pname);
-
-	pid = fork();
-	if (pid == 0)
-	{
-		// The Child Process
-		if (execvp(pname, args) == -1)
-		{
-			perror("myShell");
-			return 0;
+	if (output_redirect) {
+		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC);
+		if (out_fd == -1) {
+			printf("myshell: output file open failed\n");
 		}
-		exit(EXIT_FAILURE);
 	}
-	else if (pid < 0)
-	{
-		//Forking Error
-		perror("myShell");
-		return 0;
+	int p[2];
+	// handle pipes
+	int pipe_index = -1;
+	for (i = 0; args[i] != '\0'; i++) {
+		if (strcmp(args[i],"|")==0) {
+			args[i] = '\0';
+			pipe_index = i;
+			break;
+		}
 	}
-	else
-	{
-		// The Parent Process
-		do {
-			wpid = waitpid(pid, &status, WUNTRACED);
-		} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+      if (pipe_index != -1) {
+            // create pipe
+            if (pipe(p) == -1) {
+                printf("myshell: pipe creation failed\n");
+            }
+
+            // execute left command
+            args[0] = &args[pipe_index-1];
+            args[1] = NULL;
+            pid_t pid_left = fork();
+            if (pid_left == 0) {
+                dup2(in_fd, STDIN_FILENO);
+                close(p[0]); // close unused read end
+                dup2(p[1], STDOUT_FILENO);
+                close(p[1]); // close write end
+                execvp(args[0], args);
+                printf("myshell: command not found: %s\n", args[0]);
+                exit(0);
+            } else if (pid_left < 0) {
+                printf("myshell: fork failed\n");
+            }
+
+            // execute right command
+            args[0] = &args[pipe_index+1];
+            args[1] = NULL;
+            pid_t pid_right = fork();
+            if (pid_right == 0) {
+                dup2(p[0], STDIN_FILENO);
+                close(p[1]); // close unused write end
+                dup2(out_fd, STDOUT_FILENO);
+                close(p[0]); // close read end
+                execvp(args[0], args);
+                printf("myshell: command not found: %s\n", args[0]);
+                exit(0);
+            } else if (pid_right < 0) {
+                printf("myshell: fork failed\n");
+            }
+
+            // wait for both child processes to finish
+            close(p[0]);
+            close(p[1]);
+            waitpid(pid_left, NULL, 0);
+            waitpid(pid_right,NULL,0);
+	}else{
+		pid_t pid, wpid;
+		int status;
+		pid = fork();
+		if (pid == 0)
+		{
+			// The Child Process
+			if (execvp(args[0], args) == -1)
+			{
+				perror("myShell: ");
+			}
+			exit(EXIT_FAILURE);
+		}
+		else if (pid < 0)
+		{
+			//Forking Error
+			perror("myShell: ");
+		}
+		else
+		{
+			// The Parent Process
+			do {
+				wpid = waitpid(pid, &status, WUNTRACED);
+			} while (!WIFEXITED(status) && !WIFSIGNALED(status));
+		}
 	}
 	return 1;
 }

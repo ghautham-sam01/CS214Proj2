@@ -135,7 +135,7 @@ char *words_next(void)
 	if (start < pos) {
 		int fraglen = pos - start;
 		
-		if (DEBUG) printf("fraglen: %d\n", fraglen);
+		if (DEBUG) printf("fragl en: %d\n", fraglen);
 		word = realloc(word, wordlen + fraglen + 1);
 		memcpy(word + wordlen, buf + start, fraglen);
 		wordlen += fraglen;
