@@ -131,3 +131,8 @@ echo foo > bar > baz
 cat < foo < bar
 echo foo | cat < bar
 ```             
+test case 6.)
+```
+echo hello > fooxbar
+cat foo*bar
+```
