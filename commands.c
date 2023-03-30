@@ -10,6 +10,7 @@
 #include <dirent.h>
 
 #include "commands.h"
+#include "words.h"
 
 // Section Dealing with Built-in Commands
 
@@ -34,45 +35,83 @@ int numRoutes() // Function to return number of builtin routes to check
 
 // Builtin command definitions
 int myShell_cd(char **tokens, char **args){
-	if (args[1] == NULL || (strcmp(args[1], "\0") == 0)) 
+	char *home = getenv("HOME");
+	printf("home: %s\n", home);
+	printf("args[0]: %s\n", args[0]);
+	printf("args[1]: %s\n", args[1]);
+
+	//no args passed
+	if (args[1] == NULL) {
+		chdir(home);
+		return 1; 
+	}
+	if (chdir(args[1]) != 0) 
 	{
 		perror("myShell_cd");
-		return 0;
-	} 
-	else 
-	{
-		//no args passed
-		//if (args[1] == NULL) {
-		//	chidir(home);
-		//	return 1; 
-		//}
-		if (chdir(args[1]) != 0) 
-		{
-			perror("myShell_cd");
-			return 0;
-		}
+		return 1;
 	}
-	return 1;
+	return 0;
 }
+
+//only pwd writes to STDOUT so need to check for redirection here
 
 int myShell_pwd(char **tokens, char **args){
 	char buf[256];
+	int output_redirect = 0;
+	int out_fd;
+	char *out_file;
+
+	for(int i = 0; tokens[i] != NULL; i++) {
+		//this should be allowed
+		if(strcmp(tokens[i], ">") == 0) { 
+			output_redirect = 1;
+			if (tokens[i + 1] == NULL) {
+				printf("redirection error: no specified file\n");
+				return 1;
+			}
+			out_file = tokens[i+1];
+			break;
+		}
+		if(strcmp(tokens[i], "|") == 0) { 
+			output_redirect = 1;
+			if (tokens[i + 1] == NULL) {
+				printf("redirection error: no specified file\n");
+				return 1;
+			}
+			out_file = tokens[i+1];
+			break;
+		}
+		//this shouldn't be allowed
+		//else if(strcmp() == 0) { 
+		//
+		//}
+	}
+
+	if(output_redirect) {
+		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP);
+		if (out_fd == -1) {
+			perror("myShell: ");
+			return 1;
+		}
+		dup2(out_fd, STDOUT_FILENO);
+	}
 
 	if(getcwd(buf, sizeof(buf)) == NULL) {
 		perror("myShell_pwd");
-		return 0;
+		//close(out_fd);
+		return 1;
 	}
 	else {
 		printf("%s\n", buf);
 	}
-
-	return 1;
+	//close(out_fd);
+	return 0;
 }
 
 int myShell_exit(){
 	printf("mysh: exiting\n");
 	exit(EXIT_SUCCESS);
-	return 1;
+	return 0;
 }
 
 // Function to create child process and run command
@@ -99,9 +138,17 @@ int myShellLaunch(char **tokens, char **args){
 	// should change stdin to the specified file
 	// if file doesn't exist then we should return an error
 	// ow proceed normally
-	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
+	int nPipes = 0, output_redirect = 0, input_redirect = 0, bare_name = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
 
 	char *in_file=NULL,*out_file = NULL;
+	
+	//check if there's a slash in the first token
+	for (i = 0; i < strlen(tokens[0]) + 1; i++) {
+		if(tokens[0][i] == '/') {
+			bare_name = 1;
+			break;
+		}
+	}
 
 	for (i = 0; tokens[i] != NULL; i++) {
 		if (strcmp(tokens[i],">")==0) {
@@ -111,7 +158,7 @@ int myShellLaunch(char **tokens, char **args){
 			// display perror and return 0
 			if (tokens[i + 1] == NULL) {
 				printf("redirection error: no specified file\n");
-				return 0;
+				return 1;
 			}
 			out_file = tokens[i+1];
 			//tokens[i + 1] = "\0";
@@ -124,13 +171,14 @@ int myShellLaunch(char **tokens, char **args){
 			// display perror and return 0
 			if (tokens[i + 1] == NULL) {
 				printf("redirection error: no specified file\n");
-				return 0;
+				return 1;
 			}
 			in_file = tokens[i+1];
 			//tokens[i + 1] = "\0";
 			args = get_args(tokens);
 			break;
-		}if(strcmp(args[i],"|")==0){
+		}
+		if(strcmp(tokens[i],"|")==0){
             nPipes++;
         }
 	}
@@ -144,7 +192,7 @@ int myShellLaunch(char **tokens, char **args){
 		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP);
 		if (out_fd == -1) {
 			perror("myShell: ");
-			return 0;
+			return 1;
 		}
 	}
 
@@ -152,7 +200,7 @@ int myShellLaunch(char **tokens, char **args){
 		in_fd = open(out_file, O_RDONLY);
 		if (out_fd == -1) {
 			perror("myShell: ");
-			return 0;
+			return 1;
 		}
 	}
 
@@ -170,38 +218,38 @@ int myShellLaunch(char **tokens, char **args){
         for (int i = 0; i <= nPipes; i++) {
             pid[i] = fork();
             if (pid[i] == -1) {
-            perror("fork");
-            exit(1);
+				perror("fork");
+				exit(1);
             } else if (pid[i] == 0) {
-            /* Child process: execute the appropriate command */
-            if (i == 0) {
-                /* First command: read from standard input */
-                close(p[0]);
-                dup2(p[1], STDOUT_FILENO);
-                close(p[1]);
-                execlp(args[1], args[1], NULL);
-                perror("execlp");
-                exit(1);
-            } else if (i == nPipes) {
-                /* Last command: write to standard output */
-                close(p[(i-1)*2]);
-                dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
-                close(p[(i-1)*2 + 1]);
-                execlp(args[i+1], args[i+1], NULL);
-                perror("execlp");
-                exit(1);
-            } else {
-                /* Middle commands: read from previous pipe, write to next pipe */
-                close(p[(i-1)*2]);
-                dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
-                close(p[(i-1)*2 + 1]);
-                close(p[i*2 + 1]);
-                dup2(p[i*2], STDIN_FILENO);
-                close(p[i*2]);
-                execlp(args[i+1], args[i+1], NULL);
-                perror("execlp");
-                exit(1);
-            }
+				/* Child process: execute the appropriate command */
+				if (i == 0) {
+					/* First command: read from standard input */
+					close(p[0]);
+					dup2(p[1], STDOUT_FILENO);
+					close(p[1]);
+					execvp(args[1], args[1], NULL);
+					perror("execvp");
+					exit(1);
+				} else if (i == nPipes) {
+					/* Last command: write to standard output */
+					close(p[(i-1)*2]);
+					dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
+					close(p[(i-1)*2 + 1]);
+					execvp(args[i+1], args[i+1], NULL);
+					perror("execvp");
+					exit(1);
+				} else {
+					/* Middle commands: read from previous pipe, write to next pipe */
+					close(p[(i-1)*2]);
+					dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
+					close(p[(i-1)*2 + 1]);
+					close(p[i*2 + 1]);
+					dup2(p[i*2], STDIN_FILENO);
+					close(p[i*2]);
+					execvp(args[i+1], args[i+1], NULL);
+					perror("execlp");
+					exit(1);
+				}
             }
         }
         
@@ -209,22 +257,27 @@ int myShellLaunch(char **tokens, char **args){
         for (int i = 0; i <= nPipes; i++) {
             waitpid(pid[i], NULL, 0);
         }
-    }	// ow just run 
+    }	
+	// ow just run 
 	else{
-		printf("normal exec\n");
+		//printf("normal exec\n");
 		pid_t pid, wpid;
 		int status;
 		char *pname = NULL; 
-		for(int i = 0; i < numRoutes(); i++) {
-			pname = traverse(routes[i], args[0]);
-			if(pname != NULL) break;
+
+		if(!bare_name) {
+			for(int i = 0; i < numRoutes(); i++) {
+				pname = traverse(routes[i], args[0]);
+				if(pname != NULL) break;
+			}
 		}
+
 		//what should it do if the pname is not recognized
 		//probably throw an error here
-		if(pname == NULL) {
+		if(pname == NULL && !bare_name) {
 			perror("myShell");
 			free(pname);
-			return 0;
+			return 1;
 		}
 		pid = fork();
 		if (pid == 0)
@@ -238,10 +291,15 @@ int myShellLaunch(char **tokens, char **args){
 				dup2(in_fd, STDIN_FILENO);
 			}
 
-			if (execvp(args[0], args) == -1)
+			if (bare_name)
 			{
-				perror("myShell: ");
+				execvp(args[0], args);
 			}
+			else
+			{ 
+				execvp(pname, args);
+			}
+			printf("exec failed\n");
 			exit(EXIT_FAILURE);
 		}
 		else if (pid < 0)
@@ -257,14 +315,14 @@ int myShellLaunch(char **tokens, char **args){
 			} while (!WIFEXITED(status) && !WIFSIGNALED(status));
 		}
 		if(input_redirect) {
-			close(in_fd);
+			//close(in_fd);
 		}
 		if(output_redirect) {
-			close(out_fd);
+			//close(out_fd);
 		}
 		free(pname);
 	}
-	return 1;
+	return 0;
 }
 
 // Function to execute command from terminal
@@ -314,7 +372,6 @@ char *traverse(char *dname, char *target)
     if (access(pname, F_OK) == 0) {
         //exists in current directory
         return pname;
-        printf("exists !\n");
     } 
     while ((de = readdir(dp))) {
         //printf("%s/%s %d\n", dname, de->d_name, de->d_type);
