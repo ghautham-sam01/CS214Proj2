@@ -4,7 +4,7 @@ CFLAGS = -std=c99 -g -Wall -fsanitize=address
 myshell: words.o readline.o arraylist.o commands.o myshell.o 
 	$(CC) $(CFLAGS) $^ -o $@
 
-test: test.o
+test: test.o myshell.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 test.o: test.c

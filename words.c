@@ -41,7 +41,7 @@ int numDelimiters() {
 
 //
 char **get_tokens(void) {
-	printf("get tokens\n");
+	//printf("get tokens\n");
 	if(DEBUG) {
 		printf("buffer: %s\n", buf);
 		printf("bytes: %d\n", bytes);
@@ -58,20 +58,32 @@ char **get_tokens(void) {
 			listSize ++;
 			words = realloc(words, sizeof(char *) * listSize);
 		}
-		/**
-		//check if current word isn't a delimiter
-		for(i = 0; i < numDelimiters(); i++) {
-			if(strcmp(word, "\0") == 0) {
-				isDelim = 1;
-			}
-		}
-		if(!isDelim){
-			words[pos] = word;
-		}
-		*/
+
+		//check if beginning of first word has ~/ if so replace with /common/home/ks1507
+		if((pos == 0) && (word[0] == '~') && (word[1] == '/')) {
+			//replace ~/ with /common/home/ks1507/214 or getenv("HOME");
+			int dlen = strlen(word + 2);
+			char *home = getenv("HOME");
+			int flen = strlen(home);
+    		char *pname = malloc(dlen + flen + 2);
+    		memcpy(pname, home, flen);
+    		pname[flen] = '/';
+    		memcpy(pname + flen + 1, word + 2, dlen);
+    		pname[dlen + 1 + flen] = '\0';
+
+			word = realloc(word, strlen(pname) + 1);
+
+			strcpy(word, pname);
+			free(pname);
+		} 
 
 		//check if word has a wildcard "*" in it 
 		//if so need to do wildcard expansion
+		for(i = 0; i < strlen(word); i++) {
+			if(word[i] == '*') {
+				// do wildcard expansion here
+			}
+		}
 
 
 		words[pos] = word;
@@ -89,16 +101,16 @@ char **get_tokens(void) {
 
 
 	//debug check the contents of words array
-	for(i = 0; i < currSize; i++){
-		printf("element %d: %s\n", i, words[i]);
-	}
+	//for(i = 0; i < currSize; i++){
+		//printf("element %d: %s\n", i, words[i]);
+	//}
 
 	return words;
 }
 
 char **get_args(char **tokens) {
 
-	printf("get args\n");
+	//printf("get args\n");
 	//go through tokens list and create a list of arguments
 	//all tokens which aren't in the delimiters list {">", "<", "|"}
 	char **args = malloc(sizeof(char *) * currSize);
@@ -106,7 +118,15 @@ char **get_args(char **tokens) {
 	for(i = 0; i < (currSize - 1); i++) {	
 		// check if current string is ">", "<", or "|"
 		// if it is don't include this token and the next one in the args list
-		char *curr = malloc(sizeof(char *));
+		/**
+		int pos = 0;
+		while(tokens[i][pos] != '\0') {
+			printf("tokens[i][pos]: %c\n", tokens[i][pos]);
+			pos++;
+		}
+		*/
+		//printf("strlen: %ld\n", strlen(tokens[i]) + 1);
+		char *curr = malloc(sizeof(char) * (strlen(tokens[i]) + 1));
 		strcpy(curr, tokens[i]);
 		if((strcmp(tokens[i], ">") == 0) || (strcmp(tokens[i], "<") == 0) || strcmp(tokens[i], "|") == 0) {
 			i ++;
@@ -115,26 +135,25 @@ char **get_args(char **tokens) {
 			index++;
 		}
 	}
-	printf("currSize: %d\n", currSize);
-	printf("index: %d\n", index);
+	//printf("currSize: %d\n", currSize);
+	//printf("index: %d\n", index);
 	args[index] = NULL;
-
 	/**
-		for(i = 0; i < (index); i++){
+	i = 0;
+	while(i < (index + 1)) {
 		printf("element %d: %s\n", i, args[i]);
+		i++;
 	}
-
 	*/
-
-	printf("done !\n");
+	//printf("done !\n");
 	return args;
 }
 
 void freeAll(char **tokens, char **args){
 	int pos = 0;
-	printf("tokens\n");
+	//printf("tokens\n");
 	while(tokens[pos] != NULL) {
-		printf("tokens[pos]: %s\n", tokens[pos]);
+		//printf("tokens[pos]: %s\n", tokens[pos]);
 		if((strcmp(tokens[pos], "<") != 0) && (strcmp(tokens[pos], ">") != 0) && (strcmp(tokens[pos], "|") != 0) && (strcmp(tokens[pos], "\0") != 0)) {
 			free(tokens[pos]);
 		}
@@ -142,9 +161,9 @@ void freeAll(char **tokens, char **args){
 	}
 
 	pos = 0;
-	printf("args\n");
+	//printf("args\n");
 	while(args[pos] != NULL) {
-		printf("element %d: %s\n", pos, args[pos]);
+		//printf("element %d: %s\n", pos, args[pos]);
 		free(args[pos]);
 		pos++;
 	}

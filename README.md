@@ -114,8 +114,7 @@ echo foo > bar > baz
 cat < foo < bar
 echo foo | cat < bar
 ```                    
-test case 4.)
-                    
+test case 4.)                   
 ```
 echo foo bar > baz
 echo foo bar>baz
@@ -124,5 +123,11 @@ echo foo>baz bar
 echo > baz foo bar
 echo>baz foo bar
 ```                         
-                    
-                
+
+test case 5.)
+```
+echo foo > bar | cat
+echo foo > bar > baz
+cat < foo < bar
+echo foo | cat < bar
+```             

@@ -46,7 +46,7 @@ int main(int argc, char **argv){
         interactiveMode();
     }else if(argc==2){
     //Batch mode
-        printf("\nProcessing file....");
+        printf("\nProcessing file....\n");
         batchMode(argv[1]);
     }else{
         printf("\n Too many args");
