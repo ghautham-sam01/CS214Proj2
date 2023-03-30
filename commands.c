@@ -99,7 +99,7 @@ int myShellLaunch(char **tokens, char **args){
 	// should change stdin to the specified file
 	// if file doesn't exist then we should return an error
 	// ow proceed normally
-	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
+	int output_redirect = 0, input_redirect = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i, nPipes;
 
 	char *in_file=NULL,*out_file = NULL;
 
