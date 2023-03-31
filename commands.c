@@ -36,14 +36,11 @@ int numRoutes() // Function to return number of builtin routes to check
 // Builtin command definitions
 int myShell_cd(char **tokens, char **args){
 	char *home = getenv("HOME");
-	printf("home: %s\n", home);
-	printf("args[0]: %s\n", args[0]);
-	printf("args[1]: %s\n", args[1]);
 
 	//no args passed
 	if (args[1] == NULL) {
 		chdir(home);
-		return 1; 
+		return 0; 
 	}
 	if (chdir(args[1]) != 0) 
 	{
@@ -86,25 +83,23 @@ int myShell_pwd(char **tokens, char **args){
 		//
 		//}
 	}
-
-	if(output_redirect) {
-		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP);
-		if (out_fd == -1) {
-			perror("myShell: ");
-			return 1;
-		}
-		dup2(out_fd, STDOUT_FILENO);
-	}
-
 	if(getcwd(buf, sizeof(buf)) == NULL) {
 		perror("myShell_pwd");
 		//close(out_fd);
 		return 1;
 	}
+	else if(output_redirect) {
+		out_fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP);
+		if (out_fd == -1) {
+			perror("myShell: ");
+			return 1;
+		}
+		write(out_fd, buf, strlen(buf));
+	}
 	else {
 		printf("%s\n", buf);
 	}
-	//close(out_fd);
+	close(out_fd);
 	return 0;
 }
 
@@ -138,21 +133,21 @@ int myShellLaunch(char **tokens, char **args){
 	// should change stdin to the specified file
 	// if file doesn't exist then we should return an error
 	// ow proceed normally
-	int nPipes = 0, output_redirect = 0, input_redirect = 0, bare_name = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
+	int nPipes = 0, output_redirect = 0, input_redirect = 0, path_name = 0, in_fd = STDIN_FILENO, out_fd = STDOUT_FILENO, i;
 
 	char *in_file=NULL,*out_file = NULL;
 	
 	//check if there's a slash in the first token
 	for (i = 0; i < strlen(tokens[0]) + 1; i++) {
 		if(tokens[0][i] == '/') {
-			bare_name = 1;
+			path_name = 1;
 			break;
 		}
 	}
 
 	for (i = 0; tokens[i] != NULL; i++) {
+		//printf("tokens[i]: %s\n", tokens[i]);
 		if (strcmp(tokens[i],">")==0) {
-			//tokens[i] = "\0";
 			output_redirect = 1;
 			// if arg after the redirection is NULL we have reached end of arg list
 			// display perror and return 0
@@ -161,11 +156,8 @@ int myShellLaunch(char **tokens, char **args){
 				return 1;
 			}
 			out_file = tokens[i+1];
-			//tokens[i + 1] = "\0";
-			break;
 		}
-		if (strcmp(tokens[i],"<")==0) {
-			//tokens[i] = "\0";
+		else if (strcmp(tokens[i],"<")==0) {
 			input_redirect = 1;
 			// if arg after the redirection is NULL we have reached end of arg list
 			// display perror and return 0
@@ -174,9 +166,7 @@ int myShellLaunch(char **tokens, char **args){
 				return 1;
 			}
 			in_file = tokens[i+1];
-			//tokens[i + 1] = "\0";
 			args = get_args(tokens);
-			break;
 		}
 		if(strcmp(tokens[i],"|")==0){
             nPipes++;
@@ -186,6 +176,7 @@ int myShellLaunch(char **tokens, char **args){
 		in_fd = open(in_file,O_RDONLY);
 		if (in_fd == -1) {
 			printf("myshell: input file open failed\n");
+			return 1;
 		}
 	}
 	if (output_redirect) {
@@ -227,7 +218,7 @@ int myShellLaunch(char **tokens, char **args){
 					close(p[0]);
 					dup2(p[1], STDOUT_FILENO);
 					close(p[1]);
-					execvp(args[1], args[1], NULL);
+					execvp(args[1], args);
 					perror("execvp");
 					exit(1);
 				} else if (i == nPipes) {
@@ -235,7 +226,7 @@ int myShellLaunch(char **tokens, char **args){
 					close(p[(i-1)*2]);
 					dup2(p[(i-1)*2 + 1], STDOUT_FILENO);
 					close(p[(i-1)*2 + 1]);
-					execvp(args[i+1], args[i+1], NULL);
+					execvp(args[i+1], args);
 					perror("execvp");
 					exit(1);
 				} else {
@@ -246,7 +237,7 @@ int myShellLaunch(char **tokens, char **args){
 					close(p[i*2 + 1]);
 					dup2(p[i*2], STDIN_FILENO);
 					close(p[i*2]);
-					execvp(args[i+1], args[i+1], NULL);
+					execvp(args[i+1], args);
 					perror("execlp");
 					exit(1);
 				}
@@ -264,8 +255,8 @@ int myShellLaunch(char **tokens, char **args){
 		pid_t pid, wpid;
 		int status;
 		char *pname = NULL; 
-
-		if(!bare_name) {
+		//printf("args[0]: %s\n", args[0]);
+		if(!path_name) {
 			for(int i = 0; i < numRoutes(); i++) {
 				pname = traverse(routes[i], args[0]);
 				if(pname != NULL) break;
@@ -274,52 +265,63 @@ int myShellLaunch(char **tokens, char **args){
 
 		//what should it do if the pname is not recognized
 		//probably throw an error here
-		if(pname == NULL && !bare_name) {
+		if(pname == NULL && !path_name) {
 			perror("myShell");
-			free(pname);
+			//free(pname);
 			return 1;
 		}
 		pid = fork();
-		if (pid == 0)
+		if (pid < 0)
 		{
+			//Forking Error
+			perror("myShell: ");
+			return 1;
+		}
+		else if (pid == 0)
+		{	
+			//printf("input_redirect: %d\n", input_redirect);
+			//printf("output_redirect: %d\n", output_redirect);
+			//printf("path_name: %d\n", path_name);
+			//printf("pname: %s\n", pname);
 			// The Child Process
 			if(output_redirect) { 
+				//printf("out redirect\n");
 				dup2(out_fd, STDOUT_FILENO);
 			}
 
 			if(input_redirect) { 
+				//printf("in redirect\n");
 				dup2(in_fd, STDIN_FILENO);
 			}
-
-			if (bare_name)
+			if (path_name)
 			{
-				execvp(args[0], args);
+				//printf("path_name\n");
+				execv(args[0], args);
+				printf("exec failed\n");
+				return 1;
 			}
 			else
 			{ 
-				execvp(pname, args);
+				//printf("bare_name\n");
+				execv(pname, args);
+				printf("exec failed\n");
+				return 1;
 			}
-			printf("exec failed\n");
-			exit(EXIT_FAILURE);
-		}
-		else if (pid < 0)
-		{
-			//Forking Error
-			perror("myShell: ");
 		}
 		else
 		{
 			// The Parent Process
 			do {
-				wpid = waitpid(pid, &status, WUNTRACED);
+				wait(NULL);
 			} while (!WIFEXITED(status) && !WIFSIGNALED(status));
 		}
 		if(input_redirect) {
-			//close(in_fd);
+			close(in_fd);
 		}
 		if(output_redirect) {
-			//close(out_fd);
+			close(out_fd);
 		}
+		//printf("done\n");
 		free(pname);
 	}
 	return 0;
@@ -379,7 +381,7 @@ char *traverse(char *dname, char *target)
         if (de->d_type == DT_DIR && de->d_name[0] != '.') {
             // construct new path
             flen = strlen(de->d_name);
-            pname = malloc(dlen + flen + 2);
+            pname = realloc(pname, dlen + flen + 2);
             memcpy(pname, dname, dlen);
             pname[dlen] = '/';
             memcpy(pname + dlen + 1, de->d_name, flen);
@@ -395,6 +397,7 @@ char *traverse(char *dname, char *target)
             seekdir(dp, offset);
         }
     }   
+	//free(pname);
     closedir(dp);
     return NULL;
 }

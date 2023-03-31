@@ -1,8 +1,13 @@
+#define _DEFAULT_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 #include <ctype.h>
+#include <dirent.h>
+
 #include "words.h"
 
 #ifndef BUFSIZE
@@ -41,10 +46,8 @@ int numDelimiters() {
 
 //
 char **get_tokens(void) {
-	//printf("get tokens\n");
 	if(DEBUG) {
-		printf("buffer: %s\n", buf);
-		printf("bytes: %d\n", bytes);
+
 	}
 	int i;
 	char *word;
@@ -53,14 +56,14 @@ char **get_tokens(void) {
 	char **words = malloc(sizeof(char*) * listSize);
 	while((word = words_next())) {
 		//if the list isn't big enough reallocate
-		//printf("word: %s\n", word);
+
 		if(pos >= LISTSIZE) {
 			listSize ++;
 			words = realloc(words, sizeof(char *) * listSize);
 		}
 
 		//check if beginning of first word has ~/ if so replace with /common/home/ks1507
-		if((pos == 0) && (word[0] == '~') && (word[1] == '/')) {
+		if((word[0] == '~') && (word[1] == '/')) {
 			//replace ~/ with /common/home/ks1507/214 or getenv("HOME");
 			int dlen = strlen(word + 2);
 			char *home = getenv("HOME");
@@ -76,12 +79,53 @@ char **get_tokens(void) {
 			strcpy(word, pname);
 			free(pname);
 		} 
-
+		char *result;
+		int last = -1, before, after;
 		//check if word has a wildcard "*" in it 
 		//if so need to do wildcard expansion
 		for(i = 0; i < strlen(word); i++) {
-			if(word[i] == '*') {
+			if(word[i] == '/') {
+				last = i;
+			}
+			else if(word[i] == '*') {
+				//check if there's a character after it
+				if(word[i + 1] == '\0') {
+					printf("error invalid wildcard\n");
+					break;
+				}
+				before = i - 1;
+				after = i + 1;
 				// do wildcard expansion here
+				//barename case look in current directory
+				if(last == -1) { 
+					result = wildcard(".", word, before, after);
+					word = realloc(word, strlen(result) + 1);
+
+					strcpy(word, result);
+					free(result);
+				}
+				//split string from last occurence of "/"
+				else {
+					before = before - last - 1;
+					after = after - last - 1;
+					char *path = malloc(last + 1);
+					strncpy(path, word, last + 1);
+					path[last] = '\0';
+
+
+					result = wildcard(path, word + last + 1, before, after);
+					
+					if(!result) { 
+						free(word);
+						word = NULL;
+					} else {
+						word = realloc(word, strlen(result) + 1);
+
+						strcpy(word, result);
+					}
+					free(result);
+					free(path); 
+				}
 			}
 		}
 
@@ -89,43 +133,84 @@ char **get_tokens(void) {
 		words[pos] = word;
 		currSize++;
 		pos++;
-		//isDelim = 0;
-		//printf("words[pos]=%s\n", words[pos]);
-		//free(word);
-		//printf("words[pos]=%s\n", words[pos]);
 	}
 
-	//printf("currSize: %d\n", currSize);
 	free(words[currSize - 1]);
 	words[currSize - 1] = NULL;
-
-
-	//debug check the contents of words array
-	//for(i = 0; i < currSize; i++){
-		//printf("element %d: %s\n", i, words[i]);
-	//}
 
 	return words;
 }
 
+char *wildcard(char *dname, char *word, int before, int after) { 
+	//we know word contains a * need to split it up into the string before the * and the string after the *
+
+	//example
+	//foo*bar
+	//before = 2
+	//after = 4
+
+	//make substring for before 
+	//check beginning of word up until before + 1
+	//int is_before = strncmp(word, target, before + 1);
+	//check from after up until word - after - 1
+	//int is_after = strncmp(word + after, target, (strlen(word - after - 1)));
+
+	//matches both pattern before and after then we know it is a match
+
+	//traversal code
+	struct dirent *de;
+    long offset;
+    int flen;
+    int dlen = strlen(dname);
+	int last = 0;
+	int is_before = 0;
+	int is_after = 0;
+    char *pname;
+    DIR *dp = opendir(dname);
+    if (!dp) {
+        perror(dname);
+        return NULL;
+    }
+
+    //check if target exists in this directory
+    if (access(pname, F_OK) == 0) {
+        //exists in current directory
+        return pname;
+    } 
+    while ((de = readdir(dp))) {
+        if (de->d_type != DT_DIR) {
+			for(int i = 0; i < strlen(de->d_name); i++){
+				if(de->d_name[i] == '/') {
+					last = i;
+				}
+			}
+
+			//de->d_name + last is the remaining part of the string after last '/'
+			//check beginning of word up until before + 1
+			is_before = strncmp(de->d_name + last, word, before);
+			//check from after up until word - after - 1
+
+			is_after = strncmp(de->d_name + (strlen(de->d_name) - (after - 1)), word + after, after - 1);
+
+			if(!is_before && !is_after) { 
+				char *ret = malloc(strlen(de->d_name) + 1);
+				strcpy(ret, de->d_name);
+				return ret;
+			}
+        }
+    }   
+    closedir(dp);
+    return NULL;
+
+}
+
 char **get_args(char **tokens) {
 
-	//printf("get args\n");
 	//go through tokens list and create a list of arguments
 	//all tokens which aren't in the delimiters list {">", "<", "|"}
 	char **args = malloc(sizeof(char *) * currSize);
 	int i, index = 0;
 	for(i = 0; i < (currSize - 1); i++) {	
-		// check if current string is ">", "<", or "|"
-		// if it is don't include this token and the next one in the args list
-		/**
-		int pos = 0;
-		while(tokens[i][pos] != '\0') {
-			printf("tokens[i][pos]: %c\n", tokens[i][pos]);
-			pos++;
-		}
-		*/
-		//printf("strlen: %ld\n", strlen(tokens[i]) + 1);
 		char *curr = malloc(sizeof(char) * (strlen(tokens[i]) + 1));
 		strcpy(curr, tokens[i]);
 		if((strcmp(tokens[i], ">") == 0) || (strcmp(tokens[i], "<") == 0) || strcmp(tokens[i], "|") == 0) {
@@ -135,25 +220,13 @@ char **get_args(char **tokens) {
 			index++;
 		}
 	}
-	//printf("currSize: %d\n", currSize);
-	//printf("index: %d\n", index);
 	args[index] = NULL;
-	/**
-	i = 0;
-	while(i < (index + 1)) {
-		printf("element %d: %s\n", i, args[i]);
-		i++;
-	}
-	*/
-	//printf("done !\n");
 	return args;
 }
 
 void freeAll(char **tokens, char **args){
 	int pos = 0;
-	//printf("tokens\n");
 	while(tokens[pos] != NULL) {
-		//printf("tokens[pos]: %s\n", tokens[pos]);
 		if((strcmp(tokens[pos], "<") != 0) && (strcmp(tokens[pos], ">") != 0) && (strcmp(tokens[pos], "|") != 0) && (strcmp(tokens[pos], "\0") != 0)) {
 			free(tokens[pos]);
 		}
@@ -161,9 +234,7 @@ void freeAll(char **tokens, char **args){
 	}
 
 	pos = 0;
-	//printf("args\n");
 	while(args[pos] != NULL) {
-		//printf("element %d: %s\n", pos, args[pos]);
 		free(args[pos]);
 		pos++;
 	}
@@ -172,9 +243,6 @@ void freeAll(char **tokens, char **args){
 
 char *words_next(void)
 {
-	//printf("buf: %s\n", buf);
-	//printf("bytes: %d\n", bytes);
-	//printf("pos: %d\n", pos);
 	if (closed) return NULL;
 	if (pos > bytes) return NULL;
 
@@ -213,11 +281,6 @@ char *words_next(void)
 	
 	// grab the word from the current buffer
 	// (Note: start == pos if we refreshed the buffer and got a space first.)
-	if(DEBUG){
-		printf("pos: %d\n", pos);
-		printf("start: %d\n", start);
-		printf("wordlen: %d\n", wordlen);
-	}
 
 	
 	if (start < pos) {
@@ -233,8 +296,6 @@ char *words_next(void)
 	if (word) {
 		word[wordlen] = '\0';
 	}
-
-	if (DEBUG) printf("word: %s\n", word);
 	
 	return word;
 }

@@ -2,28 +2,28 @@ CC = gcc
 CFLAGS = -std=c99 -g -Wall -fsanitize=address 
 
 myshell: words.o readline.o arraylist.o commands.o myshell.o 
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CCFLAGS) $^ -o $@
 
-test: test.o myshell.o
-	$(CC) $(CFLAGS) $^ -o $@
+test: words.o readline.o arraylist.o commands.o test.o
+	$(CC) $(CCFLAGS) $^ -o $@
 
 test.o: test.c
-	$(CC) $(CFLAGS) -c test.c
+	$(CC) $(CCFLAGS) -c test.c
 
 myshell.o: myshell.c myshell.h
-	$(CC) $(CFLAGS) -c myshell.c
+	$(CC) $(CCFLAGS) -c myshell.c
 
 commands.o: commands.c commands.h
-	$(CC) $(CFLAGS) -c commands.c
+	$(CC) $(CCFLAGS) -c commands.c
 
 arraylist.o: arraylist.c arraylist.h
-	$(CC) $(CFLAGS) -c arraylist.c
+	$(CC) $(CCFLAGS) -c arraylist.c
 
 readline.o: readline.c readline.h
-	$(CC) $(CFLAGS) -c readline.c
+	$(CC) $(CCFLAGS) -c readline.c
 
 words.o: words.c words.h
-	$(CC) $(CFLAGS) -c words.c
+	$(CC) $(CCFLAGS) -c words.c
 
 clean: 
 	rm -rf  *.o myshell

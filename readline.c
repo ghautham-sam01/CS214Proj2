@@ -95,11 +95,7 @@ int interactiveMode() {
         args = get_args(tokens);
         //exec
         status = execShell(tokens, args);
-        //printf("execution complete, status: %d\n", status);
 
-        //printf("status: %d\n", status);
-
-        //printf("line: %s\n", line);
         freeAll(tokens, args);
         free(args);
         free(tokens);
@@ -113,43 +109,9 @@ int interactiveMode() {
 
 //run batch mode
 int batchMode(char *fileName) {
-    printf("BATCH MODE!\n");
-    /**
-    fin = open(fileName, O_RDONLY);
-
-    if(fin == -1) { 
-        perror("batchMode: ");
-        return 1;
-    }
-    char *line ="";
-    char **tokens;
-    char **args;
-    int status;
-    while((line = readLine(fin)) != NULL) {
-        printf("line: %s\n", line);
-        //do tokenization
-        words_init(line, linePos);
-        tokens = get_tokens();
-        args = get_args(tokens);
-        //exec
-        status = execShell(tokens, args);
-        printf("execution complete, status: %d\n", status);
-
-        //printf("status: %d\n", status);
-
-        //printf("line: %s\n", line);
-        freeAll(tokens, args);
-        free(args);
-        free(tokens);
-        free(line);
-        //free(lineBuffer);
-    } 
-    printf("done");
-    */
     
     int bytes, pos,lstart;
-    char *buffer[BUFSIZE];
-    printf("BATCH MODE!\n");
+    char buffer[BUFSIZE];
     fin = open(fileName, O_RDONLY);
 
     if(fin == -1) { 
@@ -164,17 +126,17 @@ int batchMode(char *fileName) {
 
     // read input
     while ((bytes = read(fin, buffer, BUFSIZE)) > 0) {
-        write(1, lineBuffer, linePos);
-        if (DEBUG) fprintf(stderr, "read %d bytes\n", bytes);
 
         // search for newlines
         lstart = 0;
-        for (pos = 0; pos < bytes; ++pos) {
+        for (pos = 0; pos < bytes; pos++) {
+            //printf("buffer[pos]: %c\n", buffer[pos]);
             if (buffer[pos] == '\n') {
                 int thisLen = pos - lstart + 1;
                 if (DEBUG) fprintf(stderr, "finished line %d+%d bytes\n", linePos, thisLen);
-
+                //printf("NEWLINE\n");
                 append(buffer + lstart, thisLen);
+
                 dumpLine();
                 linePos = 0;
                 lstart = pos + 1;
@@ -192,10 +154,8 @@ int batchMode(char *fileName) {
         append("\n", 1);
         dumpLine();
     }
-    
-    printf("done\n");
 
-    free(lineBuffer);
+    //free(lineBuffer);
     close(fin);
     
     return EXIT_SUCCESS;
@@ -235,17 +195,17 @@ void dumpLine(void)
     lineBuffer[linePos] = '\0';
     words_init(lineBuffer, linePos);
 
-    //printf("end of line: %d\n", linePos);
-
-    //write(1, lineBuffer, linePos);
+    char *line = malloc(linePos);
+    printf("command: \n");
+    write(1, lineBuffer, linePos);
 
     char **tokens = get_tokens();
     char **args = get_args(tokens);
     int status = execShell(tokens, args);
 
-    printf("exec status: %d\n", status);
-
-    freeAll(args, tokens);
+    freeAll(tokens, args);
+    free(line);
+    free(lineBuffer);
     free(args);
     free(tokens);
 
