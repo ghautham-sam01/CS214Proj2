@@ -246,7 +246,7 @@ int myShellLaunch(char **tokens, char **args){
         
         /* Wait for all child processes to complete */
         for (int i = 0; i <= nPipes; i++) {
-            waitpid(pid[i], NULL, 0);
+            waitpid(pid[i],NULL, 0);
         }
     }	
 	// ow just run 
